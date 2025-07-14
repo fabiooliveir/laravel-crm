@@ -4,8 +4,7 @@ FROM php:8.2-apache
 # Defina o diretório de trabalho
 WORKDIR /var/www/html
 
-# Instale as dependências do sistema e as extensões PHP necessárias para o Krayin com MySQL
-# CORREÇÃO: Adicionada a extensão 'calendar' à lista de instalação.
+# Instale as dependências do sistema e as extensões PHP necessárias
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -43,5 +42,12 @@ RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 RUN rm -rf /var/www/html/public/storage
 RUN php artisan storage:link
 
-# Exponha a porta 80 para o Apache
+# Copie o script de entrypoint para o container e dê-lhe permissão de execução
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Defina o entrypoint para ser o nosso script
+ENTRYPOINT ["entrypoint.sh"]
+
+# Exponha a porta 80 (o entrypoint irá alterá-la para a porta do Cloud Run)
 EXPOSE 80
