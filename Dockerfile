@@ -26,6 +26,10 @@ RUN a2enmod rewrite
 # Copie o código da aplicação para o container
 COPY . .
 
+# Copie a configuração personalizada do Apache, desative o site padrão e ative o nosso.
+COPY 000-default.conf /etc/apache2/sites-available/krayin.conf
+RUN a2dissite 000-default.conf && a2ensite krayin.conf
+
 # Instale as dependências do Composer para produção
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
