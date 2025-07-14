@@ -75,7 +75,12 @@ return [
             'prefix'         => env('DB_PREFIX', ''),
             'prefix_indexes' => true,
             'schema'         => 'public',
-            'sslmode'        => 'prefer',
+            'sslmode'        => 'verify-full',
+            'search_path' => 'public',
+            'sslmode' => 'require', // Garanta que esta linha existe
+            'options' => [ // Adicione esta secção
+                'endpoint' => 'ep-white-salad-afwbpa5x-pooler'
+    ]
         ],
 
         'sqlsrv' => [
