@@ -5,6 +5,7 @@ FROM php:8.2-apache
 WORKDIR /var/www/html
 
 # Instale as dependências do sistema e as extensões PHP necessárias para o Krayin com MySQL
+# CORREÇÃO: Substituído 'libintl-full' por 'libicu-dev' e 'gettext' que são os pacotes corretos.
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -12,7 +13,8 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    libintl-full \
+    libicu-dev \
+    gettext \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql zip bcmath sockets intl
 
@@ -26,16 +28,11 @@ RUN a2enmod rewrite
 COPY . .
 
 # Instale as dependências do Composer para produção
-# --no-interaction para não pedir confirmação
-# --optimize-autoloader para otimizar o autoloader para produção
-# --no-dev para não instalar dependências de desenvolvimento
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
 # Compile os assets do frontend
-# Primeiro, instale o Node.js e o npm
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
-# Instale as dependências do npm e compile
 RUN npm install && npm run build
 
 # Defina as permissões corretas para as pastas do Laravel
