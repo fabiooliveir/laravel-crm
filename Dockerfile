@@ -5,7 +5,7 @@ FROM php:8.2-apache
 WORKDIR /var/www/html
 
 # Instale as dependências do sistema e as extensões PHP necessárias para o Krayin com MySQL
-# CORREÇÃO: Substituído 'libintl-full' por 'libicu-dev' e 'gettext' que são os pacotes corretos.
+# CORREÇÃO: Adicionada a extensão 'calendar' à lista de instalação.
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     gettext \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql zip bcmath sockets intl
+    && docker-php-ext-install gd pdo pdo_mysql zip bcmath sockets intl calendar
 
 # Instale o Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
