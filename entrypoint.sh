@@ -13,5 +13,10 @@ php artisan migrate --force
 # Gera o link simbólico para o armazenamento de arquivos públicos.
 php artisan storage:link
 
-# Executa o comando principal do contêiner (no nosso caso, 'php-fpm').
+# CORREÇÃO: Cria o arquivo 'installed' para evitar o redirecionamento para a instalação.
+# Este comando garante que a aplicação saiba que já foi instalada.
+touch storage/installed
+
+# Executa o comando principal do contêiner (neste caso, o supervisor).
 exec "$@"
+
