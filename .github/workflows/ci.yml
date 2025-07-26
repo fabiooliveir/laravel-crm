@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v3
 
       # Etapa de login no Azure usando as credenciais federadas (OIDC)
+      # VERIFIQUE SE OS NOMES DOS SEGREDOS AQUI CORRESPONDEM AOS DO GITHUB
       - name: Log in to Azure
         uses: azure/login@v1
         with:
