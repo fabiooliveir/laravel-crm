@@ -25,7 +25,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    # CORREÇÃO: Adicionadas as extensões 'calendar' e 'sockets' que estavam faltando.
     && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mbstring exif pcntl bcmath zip intl calendar sockets
 
 # Instala o Composer globalmente
@@ -43,18 +42,19 @@ FROM base as builder
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
 
-# Copia os arquivos do Composer e instala as dependências do PHP para produção.
+# Copia os arquivos de definição de dependências.
 COPY composer.json composer.lock ./
-RUN composer install --no-interaction --optimize-autoloader --no-dev
-
-# Copia os arquivos de dependências do Node e instala os pacotes.
 COPY package.json ./
-RUN npm install
 
-# Copia o restante do código da aplicação.
+# CORREÇÃO: Copia todos os arquivos da aplicação ANTES de rodar o composer install.
+# Isso garante que o arquivo 'artisan' esteja presente quando o composer precisar dele.
 COPY . .
 
-# Compila os assets de frontend para produção.
+# Instala as dependências do PHP.
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Instala as dependências do Node e compila os assets.
+RUN npm install
 RUN npm run build
 
 # Limpa o cache para garantir que não haja arquivos de cache antigos.
