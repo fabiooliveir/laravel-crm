@@ -10,13 +10,15 @@ php artisan key:generate --force
 # O --force é necessário para executar em ambiente de produção sem interação.
 php artisan migrate --force
 
+# Executa os database seeders para criar dados iniciais, como o usuário admin.
+php artisan db:seed --force
+
 # Gera o link simbólico para o armazenamento de arquivos públicos.
 php artisan storage:link
 
-# CORREÇÃO: Cria o arquivo 'installed' para evitar o redirecionamento para a instalação.
+# Cria o arquivo 'installed' para evitar o redirecionamento para a instalação.
 # Este comando garante que a aplicação saiba que já foi instalada.
 touch storage/installed
 
 # Executa o comando principal do contêiner (neste caso, o supervisor).
 exec "$@"
-
