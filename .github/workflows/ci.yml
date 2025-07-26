@@ -28,17 +28,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # CORREÇÃO: Adiciona um passo para registar o fornecedor do Container Registry
-      - name: Register Azure Container Registry provider
-        run: |
-          az provider register --namespace Microsoft.ContainerRegistry
-          az provider show -n Microsoft.ContainerRegistry --query "registrationState" -o tsv
-          while [[ "$(az provider show -n Microsoft.ContainerRegistry --query "registrationState" -o tsv)" != "Registered" ]]; do
-            echo "Waiting for Microsoft.ContainerRegistry provider registration..."
-            sleep 10
-          done
-          echo "Microsoft.ContainerRegistry provider is registered."
-
       # Etapa para criar o Azure Container Registry (ACR) se não existir
       - name: Create or get Azure Container Registry
         id: acr
