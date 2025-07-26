@@ -1,55 +1,77 @@
-name: CI
+name: Build and deploy container app to Azure
 
-on: [push, pull_request]
+on:
+  push:
+    # Gatilho para a branch que configurou na sua credencial federada
+    branches:
+      - '2.1'
+  workflow_dispatch:
 
 jobs:
-  tests:
-    runs-on: ${{ matrix.operating-system }}
-
-    strategy:
-      matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ["8.3", "8.2"]
-
-    name: PHP ${{ matrix.php-versions }} test on ${{ matrix.operating-system }}
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: krayin
-        ports:
-          - 3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    # Permissões necessárias para a autenticação OIDC
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      # Etapa de login no Azure usando as credenciais federadas (OIDC)
+      - name: Log in to Azure
+        uses: azure/login@v1
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: curl, gd, intl, mbstring, openssl, pdo, pdo_mysql, tokenizer, zip
-          ini-values: error_reporting=E_ALL
-          tools: composer:v2
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Running Composer Install
-        run: composer install
-
-      - name: Set Testing Environment
+      # Etapa para criar o Azure Container Registry (ACR) se não existir
+      - name: Create or get Azure Container Registry
+        id: acr
         run: |
-          cp .env.example .env
-          sed -i "s|^\(APP_ENV=\s*\).*$|\1testing|" .env
-          sed -i "s|^\(DB_HOST=\s*\).*$|\1127.0.0.1|" .env
-          sed -i "s|^\(DB_PORT=\s*\).*$|\1${{ job.services.mysql.ports['3306'] }}|" .env
-          sed -i "s|^\(DB_DATABASE=\s*\).*$|\1krayin|" .env
-          sed -i "s|^\(DB_USERNAME=\s*\).*$|\1root|" .env
-          sed -i "s|^\(DB_PASSWORD=\s*\).*$|\1root|" .env
+          ACR_NAME="pipegrowacr" # Escolha um nome único e em minúsculas
+          ACR_EXISTS=$(az acr list --resource-group pipegrow --query "[?name=='$ACR_NAME'].name" -o tsv)
+          if [ -z "$ACR_EXISTS" ]; then
+            echo "Creating ACR: $ACR_NAME"
+            az acr create --resource-group pipegrow --name $ACR_NAME --sku Basic
+          else
+            echo "ACR '$ACR_NAME' already exists."
+          fi
+          echo "ACR_NAME=$ACR_NAME" >> $GITHUB_OUTPUT
 
-      - name: Running Krayin Installer
-        run: php artisan krayin-crm::install --skip-env-check --skip-admin-creation
+      # Etapa para fazer login no ACR (autentica-se automaticamente com a sessão do Azure)
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ steps.acr.outputs.ACR_NAME }}.azurecr.io
 
-       - name: Running Pest Test
-        run: vendor/bin/pest --parallel --colors=always
+      # Etapa para construir e enviar a imagem Docker para o ACR
+      - name: Build and push Docker image
+        run: |
+          docker build . -t ${{ steps.acr.outputs.ACR_NAME }}.azurecr.io/laravel-crm:${{ github.sha }}
+          docker push ${{ steps.acr.outputs.ACR_NAME }}.azurecr.io/laravel-crm:${{ github.sha }}
+
+      # Etapa final para implantar no Azure Container Apps
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          containerAppName: app
+          resourceGroup: pipegrow
+          imageToDeploy: ${{ steps.acr.outputs.ACR_NAME }}.azurecr.io/laravel-crm:${{ github.sha }}
+          ingress: 'external'
+          targetPort: 8080
+          environmentVariables: |
+            APP_KEY=${{ secrets.APP_KEY }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_DATABASE=${{ secrets.DB_DATABASE }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            ADMIN_NAME=${{ secrets.ADMIN_NAME }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            CACHE_DRIVER=database
+            SESSION_DRIVER=database
+            QUEUE_CONNECTION=database
