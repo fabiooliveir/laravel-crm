@@ -3,9 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Webkul\User\Models\User;
-use Webkul\User\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Webkul\User\Models\Role;
+use Webkul\User\Models\User;
 
 class AdminUserSeeder extends Seeder
 {

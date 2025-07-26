@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(InstallerSeeder::class);
-        
+
         // CORREÇÃO: Adiciona a chamada para o seeder do usuário administrador
         $this->call(AdminUserSeeder::class);
     }
