@@ -25,7 +25,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mbstring exif pcntl bcmath zip intl
+    # CORREÇÃO: Adicionadas as extensões 'calendar' e 'sockets' que estavam faltando.
+    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mbstring exif pcntl bcmath zip intl calendar sockets
 
 # Instala o Composer globalmente
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
